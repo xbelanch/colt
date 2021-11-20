@@ -5,6 +5,8 @@
 #include <dirent.h>
 
 #define MAX_LINE_SIZE 1024
+#define ANSI_COLOR_GREEN "\x1b[32m"
+#define ANSI_COLOR_RESET "\x1b[0m"
 
 const char *get_filename_ext(const char *filename) {
     const char *dot = strrchr(filename, '.');
@@ -12,7 +14,36 @@ const char *get_filename_ext(const char *filename) {
     return dot + 1;
 }
 
-int main(int argc, char *argv[])
+// TODO: Fix segmentation fault
+void traverse_recursively_dir(const char *path_to_dir, int deep) {
+    DIR *dirp = opendir(path_to_dir);
+    struct dirent *dirn;
+    while ((dirn = readdir(dirp)) != NULL) {
+        if (dirn->d_name[0] != '.') {
+            if (dirn->d_type == DT_DIR) {
+                fprintf(stdout, "%d: " ANSI_COLOR_GREEN "%s\n" ANSI_COLOR_RESET, deep, dirn->d_name);
+                struct dirent *dirn_tmp = dirn;
+                traverse_recursively_dir(dirn->d_name, ++deep);
+                dirn = dirn_tmp;
+                --deep;
+            } else {
+                fprintf(stdout, "%d: %s\n", deep, dirn->d_name);
+            }
+        }
+    }
+    closedir(dirp);
+}
+
+int main(int argc, char *argv[]) {
+    (void) argc;
+    (void) argv;
+
+    traverse_recursively_dir(".", 0);
+
+    return (0);
+}
+
+int main2(int argc, char *argv[])
 {
     (void) argc;
     (void) argv[0];
