@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <dirent.h>
+#include <errno.h>
 
 #define MAX_LINE_SIZE 1024
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -14,21 +15,33 @@ const char *get_filename_ext(const char *filename) {
     return dot + 1;
 }
 
-// TODO: Fix segmentation fault
-void traverse_recursively_dir(const char *path_to_dir, int deep) {
-    DIR *dirp = opendir(path_to_dir);
+// TODO: Maybe linked list instead of recursive approach?
+void traverse_recursively_dir(const char *name, int deep) {
+    DIR *dirp;
     struct dirent *dirn;
+
+    if (!(dirp = opendir(name))) {
+        fprintf(stderr, "ERROR: %d\n", errno);
+        return;
+    }
+
     while ((dirn = readdir(dirp)) != NULL) {
-        if (dirn->d_name[0] != '.') {
-            if (dirn->d_type == DT_DIR) {
-                fprintf(stdout, "%d: " ANSI_COLOR_GREEN "%s\n" ANSI_COLOR_RESET, deep, dirn->d_name);
-                struct dirent *dirn_tmp = dirn;
-                traverse_recursively_dir(dirn->d_name, ++deep);
-                dirn = dirn_tmp;
-                --deep;
-            } else {
-                fprintf(stdout, "%d: %s\n", deep, dirn->d_name);
-            }
+        char path[1024];
+
+        if (dirn->d_name[0] == '.')
+            continue;
+
+        // TODO: Fix tree list dir output
+        if (dirn->d_type == DT_DIR) {
+            for (int i = 0; i < (deep<<2); ++i) putchar(' ');
+            fprintf(stdout, ANSI_COLOR_GREEN "%s\n" ANSI_COLOR_RESET, dirn->d_name);
+            snprintf(path, sizeof(path), "%s/%s", name, dirn->d_name);
+            traverse_recursively_dir(path, ++deep);
+            --deep;
+        } else {
+            fprintf(stdout, "|-");
+            for (int i = 0; i < (deep<<2); ++i) putchar('-');
+            fprintf(stdout, " %s(%d)\n", dirn->d_name, deep);
         }
     }
     closedir(dirp);
