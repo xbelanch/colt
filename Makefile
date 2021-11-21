@@ -1,5 +1,5 @@
-CC=gcc
-CFLAGS=-Wall -Wextra -std=c99 -pedantic -ggdb -D_DEFAULT_SOURCE
+CC=cc
+CFLAGS=-Wall -Wextra -std=c11 -pedantic -ggdb
 LIBS=
 INPUT=
 

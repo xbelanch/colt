@@ -1,7 +1,7 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 #include <dirent.h>
 #include <errno.h>
 
@@ -15,18 +15,31 @@ const char *get_filename_ext(const char *filename) {
     return dot + 1;
 }
 
+#define PUNCTUATION_MARK_SLASH "/"
+#define PUNCTUATION_MARK_SLASH_LEN 1
+
+char *concat_pathnames(char *basename, char *pathname) {
+    printf("%s/%s\n", basename, pathname);
+    size_t basename_len = strlen(basename);
+    size_t pathname_len = strlen(pathname);
+    char *concat_names = malloc(sizeof(char) * (basename_len + pathname_len + PUNCTUATION_MARK_SLASH_LEN) + 1);
+    strcpy(concat_names, basename);
+    strcat(concat_names, PUNCTUATION_MARK_SLASH);
+    strcat(concat_names, pathname);
+    return concat_names;
+}
+
 // TODO: Maybe linked list instead of recursive approach?
-void traverse_recursively_dir(const char *name, int deep) {
+void traverse_recursively_dir(char *pathname, int deep) {
     DIR *dirp;
     struct dirent *dirn;
 
-    if (!(dirp = opendir(name))) {
-        fprintf(stderr, "ERROR: %d\n", errno);
-        return;
+    if (!(dirp = opendir(pathname))) {
+        fprintf(stderr, "ERROR: Could not open directory %s: %s\n", pathname, strerror(errno));
+        exit(1);
     }
 
     while ((dirn = readdir(dirp)) != NULL) {
-        char path[1024];
 
         if (dirn->d_name[0] == '.')
             continue;
@@ -35,8 +48,7 @@ void traverse_recursively_dir(const char *name, int deep) {
         if (dirn->d_type == DT_DIR) {
             for (int i = 0; i < (deep<<2); ++i) putchar(' ');
             fprintf(stdout, ANSI_COLOR_GREEN "%s\n" ANSI_COLOR_RESET, dirn->d_name);
-            snprintf(path, sizeof(path), "%s/%s", name, dirn->d_name);
-            traverse_recursively_dir(path, ++deep);
+            traverse_recursively_dir(concat_pathnames(pathname, dirn->d_name), ++deep);
             --deep;
         } else {
             fprintf(stdout, "|-");
@@ -64,8 +76,8 @@ int main2(int argc, char *argv[])
     struct dirent *dp;
     DIR *dir = opendir(".");
 
-    uint8_t __directories = 0;
-    uint8_t __files = 0;
+    int __directories = 0;
+    int __files = 0;
 
     if (NULL == dir) {
         fprintf(stdout, "Directory not found. Exit\n");
