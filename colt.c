@@ -4,6 +4,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <errno.h>
+#include <assert.h>
 
 #define MAX_LINE_SIZE 1024
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -18,11 +19,12 @@ const char *get_filename_ext(const char *filename) {
 #define PUNCTUATION_MARK_SLASH "/"
 #define PUNCTUATION_MARK_SLASH_LEN 1
 
+// TODO: Use memcpy instead of strcpy or strcat (@tsoding style)
 char *concat_pathnames(char *basename, char *pathname) {
-    printf("%s/%s\n", basename, pathname);
     size_t basename_len = strlen(basename);
     size_t pathname_len = strlen(pathname);
-    char *concat_names = malloc(sizeof(char) * (basename_len + pathname_len + PUNCTUATION_MARK_SLASH_LEN) + 1);
+    char *concat_names = malloc(sizeof(char) * (basename_len + pathname_len + PUNCTUATION_MARK_SLASH_LEN));
+    assert(concat_names != NULL);
     strcpy(concat_names, basename);
     strcat(concat_names, PUNCTUATION_MARK_SLASH);
     strcat(concat_names, pathname);
@@ -30,7 +32,7 @@ char *concat_pathnames(char *basename, char *pathname) {
 }
 
 // TODO: Maybe linked list instead of recursive approach?
-void traverse_recursively_dir(char *pathname, int deep) {
+void traverse_recursively_dir(char *pathname) {
     DIR *dirp;
     struct dirent *dirn;
 
@@ -41,19 +43,20 @@ void traverse_recursively_dir(char *pathname, int deep) {
 
     while ((dirn = readdir(dirp)) != NULL) {
 
-        if (dirn->d_name[0] == '.')
-            continue;
-
-        // TODO: Fix tree list dir output
         if (dirn->d_type == DT_DIR) {
-            for (int i = 0; i < (deep<<2); ++i) putchar(' ');
-            fprintf(stdout, ANSI_COLOR_GREEN "%s\n" ANSI_COLOR_RESET, dirn->d_name);
-            traverse_recursively_dir(concat_pathnames(pathname, dirn->d_name), ++deep);
-            --deep;
+            if (dirn->d_name[0] != '.' && strcmp(dirn->d_name, "..") != 0) {
+                char *child_path = concat_pathnames(pathname, dirn->d_name);
+                traverse_recursively_dir(child_path);
+                fprintf(stdout, ANSI_COLOR_GREEN "%s\n" ANSI_COLOR_RESET, child_path);
+                free(child_path);
+            }
         } else {
-            fprintf(stdout, "|-");
-            for (int i = 0; i < (deep<<2); ++i) putchar('-');
-            fprintf(stdout, " %s(%d)\n", dirn->d_name, deep);
+            // Uncoment this for avoiding files without extension
+            // if (get_filename_ext(dirn->d_name) == NULL)
+            //     continue;
+
+            // TODO: Do something with files
+            fprintf(stdout, "file: %s/%s\n", pathname, dirn->d_name);
         }
     }
     closedir(dirp);
@@ -63,7 +66,7 @@ int main(int argc, char *argv[]) {
     (void) argc;
     (void) argv;
 
-    traverse_recursively_dir(".", 0);
+    traverse_recursively_dir(".");
 
     return (0);
 }
@@ -90,8 +93,7 @@ int main2(int argc, char *argv[])
             if (dp->d_name[0] == '.')
                 continue;
 
-            if (!get_filename_ext(dp->d_name)) // avoid files without extension
-                continue;
+
 
             // Print only markdown files
             if (strcmp(get_filename_ext(dp->d_name), "c") == 0) {
