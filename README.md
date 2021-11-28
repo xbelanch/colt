@@ -1,5 +1,6 @@
 # colt
 
+// TODO: Better explanation
 Parse and collect all TODOs from comments in your project and publish them as a Issues on Github.
 
 ## References
