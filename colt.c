@@ -79,19 +79,18 @@ void traverse_recursively_dir(char *pathname) {
     errno = 0;
 
     while ((dirn = readdir(dirp)) != NULL) {
+        char *child_path = concat_pathnames(pathname, dirn->d_name);
         if (dirn->d_type == DT_DIR) {
             if (dirn->d_name[0] != '.' && strcmp(dirn->d_name, "..") != 0) {
-                char *child_path = concat_pathnames(pathname, dirn->d_name);
                 traverse_recursively_dir(child_path);
                 fprintf(stdout, ANSI_COLOR_GREEN "%s\n" ANSI_COLOR_RESET, child_path);
-                free(child_path);
             }
         } else {
             // TODO: Do something with files
-            char *filepath = concat_pathnames(pathname, dirn->d_name);
-            read_file_given_extension(filepath, "c");
-            read_file_given_extension(filepath, "md");
+            read_file_given_extension(child_path, "c");
+            read_file_given_extension(child_path, "md");
         }
+        free(child_path);
     }
     closedir(dirp);
 }
